@@ -1,0 +1,6 @@
+texture_ibl
+.vscode
+*.dSYM
+output.ppm
+a.out
+.DS_Store
