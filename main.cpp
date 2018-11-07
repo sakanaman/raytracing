@@ -58,7 +58,7 @@ Vec3 getColor(const Ray &ray, IBL &ibl, double roulette = 1.0, int depth = 0)
 
             if (cos2t < 0.0)
             { // 全反射
-                return getColor(reflection_ray, ibl, roulette, depth + 1) * 1 / roulette;
+                return hit.hitShape->texture->getColor1(hit.u, hit.v, hit.hitPos) * getColor(reflection_ray, ibl, roulette, depth + 1) * 1 / roulette;
             }
             const Ray refraction_ray = Ray(hit.hitPos - orienting_normal * 0.001,
                                            normalize(ray.direction * nnt - hit.hitNormal * (into ? 1.0 : -1.0) * (ddn * nnt + sqrt(cos2t))));
@@ -76,17 +76,17 @@ Vec3 getColor(const Ray &ray, IBL &ibl, double roulette = 1.0, int depth = 0)
             {
                 if (rnd() < prob)
                 {
-                    return getColor(reflection_ray, ibl, roulette, depth + 1) * Re * (1 / prob) * (1 / roulette);
+                    return hit.hitShape->texture->getColor1(hit.u, hit.v, hit.hitPos) * getColor(reflection_ray, ibl, roulette, depth + 1) * Re * (1 / prob) * (1 / roulette);
                 }
                 else
                 {
-                    return getColor(refraction_ray, ibl, roulette, depth + 1) * Tr * (1 / (1 - prob)) * (1 / roulette);
+                    return hit.hitShape->texture->getColor1(hit.u, hit.v, hit.hitPos) * getColor(refraction_ray, ibl, roulette, depth + 1) * Tr * (1 / (1 - prob)) * (1 / roulette);
                 }
             }
             else
             {
-                return getColor(reflection_ray, ibl, roulette, depth + 1) * Re * 1 / roulette +
-                       getColor(refraction_ray, ibl, roulette, depth + 1) * Tr * 1 / roulette;
+                return hit.hitShape->texture->getColor1(hit.u, hit.v, hit.hitPos) * getColor(reflection_ray, ibl, roulette, depth + 1) * Re * 1 / roulette +
+                       hit.hitShape->texture->getColor1(hit.u, hit.v, hit.hitPos) * getColor(refraction_ray, ibl, roulette, depth + 1) * Tr * 1 / roulette;
             }
         }
         else
@@ -107,18 +107,36 @@ int main()
     IBL ibl("texture_ibl/PaperMill_E_3k.hdr");
 
     Image img(512, 512); //横・縦幅をもつImageのオブジェクトの生成
-    Vec3 lookfrom(0, 6 * std::sin(M_PI / 12), -6 * std::cos(M_PI / 12));
+    Vec3 lookfrom(-1.2, 5.3 * std::sin(12 * M_PI / 180), -5.3 * std::cos(12 * M_PI / 180));
+    //Pinhole_Camera cam(lookfrom, normalize(-1 * lookfrom));
     Thin_Lens_Camera cam(lookfrom, normalize(-1 * lookfrom), 1.5, Vec3(0, 0, 0), 6.5);
-
+    Vec3 normal(-1 * sin(10 * M_PI / 180), cos(10 * M_PI / 180), 0);
+    Vec3 x, z, position;
+    coordinate_system(normal, x, z);
+    int number = 10;
+    double r = 1.5;
+    Vec3 col;
+    for (int t = 0; t < number; t++)
+    {
+        col = Vec3(1, 1, 1);
+        position = r * (cos(2 * t * M_PI / number) * x + sin(2 * t * M_PI / number) * z);
+        if (t % 2 != 0)
+            col = Vec3(0.4, 0.4, 0.4);
+        accel.add(std::make_shared<Sphere>(position, 0.2, std::make_shared<UniformTexture>(col), 2));
+    }
+    accel.add(std::make_shared<Cylinder>(1.6, 2 * M_PI, Vec3(0, -1, 0), Vec3(0, -1.2, 0),
+                                         std::make_shared<CheckerTexture>(Vec3(0.99, 0.99, 0.99), Vec3(0.13, 0.13, 0.13)), 0));
+    accel.add(std::make_shared<Disk>(Vec3(0, 1, 0), Vec3(0, -1, 0), 0, 1.6, 0,
+                                     std::make_shared<CheckerTexture>(Vec3(0.99, 0.99, 0.99), Vec3(0.13, 0.13, 0.13)), 0));
     accel.add(std::make_shared<Sphere>(Vec3(0, 0, 0), 1.0, std::make_shared<ImageTexture>("texture_ibl/earthmap.jpg"), 1));
-    accel.add(std::make_shared<Tri>(Vec3(-5, -1, 5), Vec3(5, -1, -5), Vec3(-5, -1, -5),
-                                    std::make_shared<CheckerTexture>(Vec3(0.99, 0.99, 0.99), Vec3(0.5, 0.5, 0.5)), 0)); //下の地面1
-    accel.add(std::make_shared<Tri>(Vec3(-5, -1, 5), Vec3(5, -1, -5), Vec3(5, -1, 5),
-                                    std::make_shared<CheckerTexture>(Vec3(0.99, 0.99, 0.99), Vec3(0.5, 0.5, 0.5)), 0)); //下の地面2
+    accel.add(std::make_shared<Tri>(Vec3(-5, -1.2, 5), Vec3(5, -1.2, -5), Vec3(-5, -1.2, -5),
+                                    std::make_shared<CheckerTexture>(Vec3(0.99, 0.99, 0.99), Vec3(0.2, 0.2, 0.2)), 0)); //下の地面1
+    accel.add(std::make_shared<Tri>(Vec3(-5, -1.2, 5), Vec3(5, -1.2, -5), Vec3(5, -1.2, 5),
+                                    std::make_shared<CheckerTexture>(Vec3(0.99, 0.99, 0.99), Vec3(0.2, 0.2, 0.2)), 0)); //下の地面2
 
-    int samples = 1000;
+    int samples = 10000;
 #pragma omp parallel for
-    for (int k = 0; k < 1000; k++)
+    for (int k = 0; k < 10000; k++)
     {
         for (int i = 0; i < img.width; i++)
         {

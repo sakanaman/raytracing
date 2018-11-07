@@ -1,6 +1,7 @@
 texture_ibl
 .vscode
 *.dSYM
-output.ppm
+*.ppm
+*.png
 a.out
 .DS_Store
