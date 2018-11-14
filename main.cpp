@@ -109,7 +109,7 @@ int main()
     Image img(512, 512); //横・縦幅をもつImageのオブジェクトの生成
     Vec3 lookfrom(-1.2, 5.3 * std::sin(12 * M_PI / 180), -5.3 * std::cos(12 * M_PI / 180));
     //Pinhole_Camera cam(lookfrom, normalize(-1 * lookfrom));
-    Thin_Lens_Camera cam(lookfrom, normalize(-1 * lookfrom), 1.5, Vec3(0, 0, 0), 6.5);
+    Thin_Lens_Camera cam(lookfrom, normalize(-1 * lookfrom), 1.5, Vec3(0, 0, 0), 9.0);
     Vec3 normal(-1 * sin(10 * M_PI / 180), cos(10 * M_PI / 180), 0);
     Vec3 x, z, position;
     coordinate_system(normal, x, z);
@@ -118,16 +118,38 @@ int main()
     Vec3 col;
     for (int t = 0; t < number; t++)
     {
-        col = Vec3(1, 1, 1);
         position = r * (cos(2 * t * M_PI / number) * x + sin(2 * t * M_PI / number) * z);
-        if (t % 2 != 0)
-            col = Vec3(0.4, 0.4, 0.4);
+        
+        if (t % 2 == 0)
+        {
+            col = Vec3(1,1,1);
+        }
+        else if (t == 9)
+        {
+            col = Vec3(128.0/255.0, 1.0, 128.0/255.0);
+        }
+        else if (t == 7)
+        {
+            col = Vec3(204.0/255.0, 204.0/255.0, 61.0/255.0);
+        }
+        else if (t == 5) 
+        {
+            col = Vec3(1,1,1);
+        }
+        else if (t == 3) 
+        {
+            col = Vec3(23.0/255.0, 77.0/255.0, 23.0/255.0);
+        }
+        else if (t == 1)
+        {
+            col = Vec3(153.0/255.0, 137.0/255.0, 122.0/255.0);
+        }
         accel.add(std::make_shared<Sphere>(position, 0.2, std::make_shared<UniformTexture>(col), 2));
     }
     accel.add(std::make_shared<Cylinder>(1.6, 2 * M_PI, Vec3(0, -1, 0), Vec3(0, -1.2, 0),
-                                         std::make_shared<CheckerTexture>(Vec3(0.99, 0.99, 0.99), Vec3(0.13, 0.13, 0.13)), 0));
+                                         std::make_shared<CheckerTexture>(Vec3(0.13, 0.13, 0.13), Vec3(0.99, 0.99, 0.99)), 0));
     accel.add(std::make_shared<Disk>(Vec3(0, 1, 0), Vec3(0, -1, 0), 0, 1.6, 0,
-                                     std::make_shared<CheckerTexture>(Vec3(0.99, 0.99, 0.99), Vec3(0.13, 0.13, 0.13)), 0));
+                                     std::make_shared<CheckerTexture>(Vec3(0.13, 0.13, 0.13), Vec3(0.99, 0.99, 0.99)), 0));
     accel.add(std::make_shared<Sphere>(Vec3(0, 0, 0), 1.0, std::make_shared<ImageTexture>("texture_ibl/earthmap.jpg"), 1));
     accel.add(std::make_shared<Tri>(Vec3(-5, -1.2, 5), Vec3(5, -1.2, -5), Vec3(-5, -1.2, -5),
                                     std::make_shared<CheckerTexture>(Vec3(0.99, 0.99, 0.99), Vec3(0.2, 0.2, 0.2)), 0)); //下の地面1
